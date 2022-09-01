@@ -9,6 +9,7 @@ pub enum OnewireError {
     CrcMismatch,
     DevicesNotDetected,
     InputPinError,
+    InvalidDeviceFamily,
     LevelIsNotHigh,
     ShortDetected,
     UnexpectedResponse,
@@ -100,6 +101,12 @@ pub struct Registration {
     family: u8,
     serial_number: [u8; 6],
     crc: u8,
+}
+
+impl Registration {
+    pub fn family_code(&self) -> u8 {
+        self.family
+    }
 }
 
 impl From<u64> for Registration {

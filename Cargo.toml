@@ -1,0 +1,9 @@
+[package]
+name = "onewire-rppal"
+authors = ["Kerry Jones <kerry@iodrive.co.za>"]
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = "0.4"
+rppal = { version = "0.13", features = ["hal-unproven"] }

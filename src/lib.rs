@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::time::{Duration, Instant};
-use rppal::gpio::{IoPin, Mode};
+use rppal::gpio::{IoPin, Level, Mode, OutputPin};
 
 const ADDRESS_BITS: u8 = u64::BITS as u8;
 
@@ -22,6 +22,7 @@ pub enum Commands {
     Read = 0x33,
     Match = 0x55,
     Skip = 0xCC,
+    ReadPowerSupply = 0xB4,
 }
 
 #[repr(u8)]
@@ -167,17 +168,26 @@ fn calculate_crc8(data: &[u8]) -> u8 {
 
 pub struct Onewire {
     pin: IoPin,
+    power_pin: Option<OutputPin>,
+    power_polarity: Level,
+    uses_parasite_power: bool,
 }
 
 impl Onewire {
-    pub fn new(pin: IoPin) -> Self {
-        Onewire {
-            pin: pin,
-        }
+    pub fn new(pin: IoPin, power_pin: Option<OutputPin>, power_polarity: Option<Level>) -> Self {
+        let mut onewire = 
+            Self {
+                pin: pin,
+                power_pin: power_pin,
+                power_polarity: power_polarity.unwrap_or(Level::Low),
+                uses_parasite_power: false,
+            };
+        onewire.uses_parasite_power = onewire.read_power_supply().unwrap();
+        onewire
     }
 
     #[inline(always)]
-    fn sleep(&mut self, duration: Duration) {
+    pub fn sleep(&mut self, duration: Duration) {
         let start = Instant::now();
         while start.elapsed() < duration {
         }
@@ -366,6 +376,17 @@ impl Onewire {
         self.write_byte(Commands::Skip as u8);
         Ok(())
     }
+
+    /// Read the power supply of all devices on the bus simulataneously.
+    fn read_power_supply(&mut self) -> OnewireResult<bool> {
+        self.skip_registration().unwrap();
+        self.write_byte(Commands::ReadPowerSupply as u8);
+        Ok(self.read_bit())
+    }
+
+    pub fn uses_parasite_power(&self) -> bool {
+        self.uses_parasite_power
+    }    
 }
 
 pub struct OnewireIterator<'a> {

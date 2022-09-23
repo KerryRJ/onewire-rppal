@@ -169,17 +169,15 @@ fn calculate_crc8(data: &[u8]) -> u8 {
 pub struct Onewire {
     pin: IoPin,
     power_pin: Option<OutputPin>,
-    power_polarity: Level,
     uses_parasite_power: bool,
 }
 
 impl Onewire {
-    pub fn new(pin: IoPin, power_pin: Option<OutputPin>, power_polarity: Option<Level>) -> Self {
+    pub fn new(pin: IoPin, power_pin: Option<OutputPin>) -> Self {
         let mut onewire = 
             Self {
                 pin: pin,
                 power_pin: power_pin,
-                power_polarity: power_polarity.unwrap_or(Level::Low),
                 uses_parasite_power: false,
             };
         onewire.uses_parasite_power = onewire.read_power_supply().unwrap();
@@ -190,6 +188,19 @@ impl Onewire {
     pub fn sleep(&mut self, duration: Duration) {
         let start = Instant::now();
         while start.elapsed() < duration {
+        }
+    }
+
+    #[inline(always)]
+    pub fn depower(&mut self) {
+        match &mut self.power_pin {
+            Some(pin) => {
+                pin.set_low();
+            },
+            None => {
+                self.pin.set_mode(Mode::Input);
+                self.pin.set_low();
+            },
         }
     }
 
